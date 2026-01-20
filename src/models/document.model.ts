@@ -8,8 +8,19 @@ export interface IDocument extends Document {
   originalName: string;
   mimeType: string;
   rawText: string;
+
   status: DocumentStatus;
   error?: string;
+
+  analysis?: {
+    summary: string;
+    category: string;
+    entities: {
+      name: string;
+      type: string;
+    }[];
+  };
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,11 +45,23 @@ const documentSchema = new Schema<IDocument>(
     },
 
     error: { type: String },
+
+    analysis: {
+      summary: String,
+      category: { type: String, index: true },
+      entities: [
+        {
+          _id: false,
+          name: { type: String, index: true },
+          type: { type: String, index: true },
+        },
+      ],
+    },
   },
   {
     timestamps: true,
     versionKey: false,
-  }
+  },
 );
 
 export const DocumentModel = model<IDocument>("Document", documentSchema);
