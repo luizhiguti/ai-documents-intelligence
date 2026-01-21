@@ -1,5 +1,6 @@
 import { DocumentModel } from "../models/document.model";
 import { analyzeDocumentText } from "../ai/llm.service";
+import { generateEmbedding } from "../ai/embedding.service";
 
 export async function processDocument(documentId: string) {
   const doc = await DocumentModel.findById(documentId);
@@ -17,10 +18,14 @@ export async function processDocument(documentId: string) {
     });
 
     const analysis = await analyzeDocumentText(doc.rawText);
+    const embedding = await generateEmbedding(
+      `${analysis.summary}\n${doc.rawText}`,
+    );
 
     await DocumentModel.findByIdAndUpdate(documentId, {
       status: "processed",
       analysis,
+      embedding,
     });
   } catch (err: any) {
     await DocumentModel.findByIdAndUpdate(documentId, {

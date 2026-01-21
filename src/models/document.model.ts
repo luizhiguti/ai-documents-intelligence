@@ -21,6 +21,8 @@ export interface IDocument extends Document {
     }[];
   };
 
+  embedding?: number[];
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -57,7 +59,13 @@ const documentSchema = new Schema<IDocument>(
         },
       ],
     },
+
+    embedding: {
+      type: [Number],
+      index: true,
+    },
   },
+
   {
     timestamps: true,
     versionKey: false,

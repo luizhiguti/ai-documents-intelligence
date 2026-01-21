@@ -4,6 +4,7 @@ import {
   getDocumentById,
   listDocuments,
 } from "../services/documents.service";
+import { semanticSearch } from "../services/search.service";
 
 export async function createDocumentHandler(req: Request, res: Response) {
   try {
@@ -56,4 +57,14 @@ export async function listDocumentsHandler(req: Request, res: Response) {
     console.error("List documents failed", err);
     res.status(500).json({ error: "Internal server error" });
   }
+}
+
+export async function semanticSearchHandler(req: Request, res: Response) {
+  const { q } = req.query;
+
+  if (!q) return res.status(400).json({ error: "Missing query" });
+
+  const results = await semanticSearch(q as string);
+
+  res.json(results);
 }
