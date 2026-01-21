@@ -15,9 +15,7 @@ export async function semanticSearch(query: string, limit = 5) {
       },
     },
     {
-      $project: {
-        originalName: 1,
-        analysis: 1,
+      $addFields: {
         score: { $meta: "vectorSearchScore" },
       },
     },

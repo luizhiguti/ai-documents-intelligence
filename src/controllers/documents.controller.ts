@@ -5,6 +5,7 @@ import {
   listDocuments,
 } from "../services/documents.service";
 import { semanticSearch } from "../services/search.service";
+import { answerQuestion } from "../ai/rag.service";
 
 export async function createDocumentHandler(req: Request, res: Response) {
   try {
@@ -67,4 +68,20 @@ export async function semanticSearchHandler(req: Request, res: Response) {
   const results = await semanticSearch(q as string);
 
   res.json(results);
+}
+
+export async function askQuestionHandler(req: Request, res: Response) {
+  try {
+    const { question } = req.body;
+
+    if (!question) {
+      return res.status(400).json({ error: "Question is required" });
+    }
+
+    const result = await answerQuestion(question);
+    res.json(result);
+  } catch (err) {
+    console.error("RAG failed: ", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
 }
