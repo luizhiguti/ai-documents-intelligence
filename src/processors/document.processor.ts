@@ -1,6 +1,8 @@
 import { DocumentModel } from "../models/document.model";
 import { analyzeDocumentText } from "../ai/llm.service";
 import { generateEmbedding } from "../ai/embedding.service";
+import { chunkText } from "../ai/chunking.service";
+import { ChunkModel } from "../models/chunk.model";
 
 export async function processDocument(documentId: string) {
   const doc = await DocumentModel.findById(documentId);
@@ -18,14 +20,30 @@ export async function processDocument(documentId: string) {
     });
 
     const analysis = await analyzeDocumentText(doc.rawText);
-    const embedding = await generateEmbedding(
+    const documentEmbedding = await generateEmbedding(
       `${analysis.summary}\n${doc.rawText}`,
     );
+
+    const chunks = chunkText(doc.rawText);
+
+    // avoid duplicated chunks
+    await ChunkModel.deleteMany({ documentId: doc._id });
+
+    for (let i = 0; i < chunks.length; i++) {
+      const chunksEmbedding = await generateEmbedding(chunks[i] as string);
+
+      await ChunkModel.create({
+        documentId: doc._id,
+        text: chunks[i],
+        embedding: chunksEmbedding,
+        index: i,
+      });
+    }
 
     await DocumentModel.findByIdAndUpdate(documentId, {
       status: "processed",
       analysis,
-      embedding,
+      embedding: documentEmbedding,
     });
   } catch (err: any) {
     await DocumentModel.findByIdAndUpdate(documentId, {

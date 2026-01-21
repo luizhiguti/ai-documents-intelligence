@@ -1,47 +1,66 @@
 import { openai } from "./llm.client";
 import { RAGResult } from "./rag.types";
 
+type RAGContext = {
+  index: number;
+  chunkId: string;
+  documentId: string;
+  documentName: string;
+  text: string;
+  score: number;
+};
+
 export async function generateGroundedAnswer(
   question: string,
-  contexts: {
-    index: number;
-    id: string;
-    name: string;
-    text: string;
-  }[],
+  contexts: RAGContext[],
 ): Promise<RAGResult> {
   const systemPrompt = `
-You are an AI assistant answering questions ONLY using the provided document excerpts.
+You are an AI assistant answering questions strictly using the provided document excerpts.
 
 Rules:
-- Use only the given context.
-- If the answer is not contained, say you don't know.
-- Be concise and factual.
-- Always cite sources.
-  `;
+- Use ONLY the provided context.
+- Do NOT use outside knowledge.
+- If the answer is not contained, say: "I don't have enough information to answer this."
+- Be concise, factual, and neutral.
+- Always return valid JSON.
+- Always include citations.
+`;
 
   const contextText = contexts
     .map(
-      (c) => `[Source ${c.index}] (document: ${c.name}, id: ${c.id}) 
-      ${c.text}`,
+      (c) => `[Source ${c.index}]
+Document: ${c.documentName} (Id: ${c.documentId})
+ChunkId: ${c.chunkId}
+
+${c.text}`,
     )
-    .join("\n\n");
+    .join("\n\n---\n\n");
 
   const userPrompt = `
-Context: 
+Context:
 ${contextText}
 
-Question: 
+Question:
 ${question}
 
-Return a JSON object in this format:
+Return a JSON object in this exact format:
+
 {
   "answer": "...",
   "sources": [
-    { "documentId": "...", "originalName": "...", "excerpt": "..." }
+    {
+      "documentId": "...",
+      "documentName": "...",
+      "chunkId": "...",
+      "excerpt": "..."
+    }
   ]
 }
-    `;
+
+Rules for sources:
+- Only cite sources you used.
+- The excerpt must be copied from the context.
+`;
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
